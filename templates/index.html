@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Phishing Link Detector</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<header class="hero">
+  <div class="logo">🛡️</div>
+  <h1>Phishing Link Detector</h1>
+  <p>Paste a link and find out if it looks like phishing. The link is analysed as text and is <b>never opened</b> or stored.</p>
+</header>
+
+<main class="container">
+  <form method="post" class="card search" id="form">
+    <label for="url">Enter a URL</label>
+    <div class="row">
+      <input id="url" name="url" type="text" value="{{ url }}" placeholder="https://example.com/login" autocomplete="off" autofocus>
+      <button type="submit" id="btn">Check link</button>
+    </div>
+    {% if error %}<p class="error">⚠️ {{ error }}</p>{% endif %}
+    <div class="examples">
+      <span>Try an example:</span>
+      {% for e in examples %}<button type="button" class="chip" data-url="{{ e }}">{{ e[:38] }}{{ '…' if e|length > 38 }}</button>{% endfor %}
+    </div>
+  </form>
+
+  {% if result %}
+  <section class="card result {{ result.risk }}">
+    <div class="verdict">
+      <div class="icon">{{ '🚨' if result.verdict == 'PHISHING' else '✅' }}</div>
+      <div>
+        <h2>{{ 'Likely phishing' if result.verdict == 'PHISHING' else 'Looks legitimate' }}</h2>
+        <p class="url">{{ result.url }}</p>
+      </div>
+    </div>
+
+    <div class="meter-label"><span>Phishing probability</span><b>{{ result.percent }}%</b></div>
+    <div class="meter"><div class="fill" style="width: {{ 100 - result.percent }}%"></div></div>
+    <div class="meter-scale"><span>Safe</span><span>Suspicious</span><span>Dangerous</span></div>
+
+    <h3>Why?</h3>
+    {% if result.reasons %}
+      <ul class="reasons">{% for r in result.reasons %}<li>{{ r }}</li>{% endfor %}</ul>
+    {% else %}
+      <p class="muted">No suspicious patterns were found in this URL.</p>
+    {% endif %}
+
+    {% if result.verdict == 'PHISHING' %}
+    <div class="advice">Do not enter passwords, OTPs or card details. If you already did, contact your bank and report at <b>cybercrime.gov.in</b> or call <b>1930</b>.</div>
+    {% else %}
+    <div class="advice ok">This is only a prediction from the URL text. Stay careful with unexpected messages even if the link looks fine.</div>
+    {% endif %}
+
+    <details>
+      <summary>Show extracted features</summary>
+      <table class="features">
+        <tr><th>Feature</th><th>Value</th></tr>
+        {% for n, v in result.features %}<tr><td>{{ n.replace('_', ' ') }}</td><td>{{ v }}</td></tr>{% endfor %}
+      </table>
+    </details>
+  </section>
+  {% endif %}
+
+  <section class="card tips">
+    <h3>How to spot a phishing link</h3>
+    <div class="grid">
+      <div><b>Check the domain</b><p>The real site name is just before the first “/”. <i>paypal.com.evil.xyz</i> belongs to evil.xyz.</p></div>
+      <div><b>Urgent language</b><p>“Verify now”, “account suspended” and “KYC update” are common lures.</p></div>
+      <div><b>IP addresses and “@”</b><p>Real companies do not use raw IPs or hide hosts behind “@”.</p></div>
+      <div><b>Never share OTP/PIN</b><p>No bank or app will ask for them through a link.</p></div>
+    </div>
+  </section>
+</main>
+
+<footer>Phishing Link Detector · Cyber Security and Laws project · Prediction only, not a guarantee</footer>
+
+<script>
+  document.querySelectorAll('.chip').forEach(c => c.addEventListener('click', () => {
+    document.getElementById('url').value = c.dataset.url;
+    document.getElementById('form').submit();
+  }));
+  document.getElementById('form').addEventListener('submit', () => {
+    const b = document.getElementById('btn'); b.textContent = 'Checking…'; b.disabled = true;
+  });
+</script>
+</body>
+</html>
